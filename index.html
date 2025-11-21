@@ -64,13 +64,13 @@ body {
   cursor: pointer;
 }
 
-/* logo under top bar */
+/* logo under bar */
 #logo {
   position: fixed;
   top: 78px;
   left: 50%;
   transform: translateX(-50%);
-  font-weight: bold;
+  font-weight: normal;
   color: rgba(255,255,255,0.9);
   font-size: 20px;
   display: none;
@@ -83,8 +83,8 @@ body {
   top: 120px;
   left: 50%;
   transform: translateX(-50%);
-  width: 240px;
-  padding: 20px;
+  width: 260px;
+  padding: 24px;
   background: rgba(0,0,0,.5);
   border: 1px solid var(--glass-strong);
   border-radius: 12px;
@@ -184,7 +184,7 @@ body {
   <label>Nebulae count</label>
   <input type="range" id="nebulaeCount" min="0" max="8" step="1" value="0" style="width:100%">
   <label>Nebula size</label>
-  <input type="range" id="nebulaSize" min="50" max="300" step="10" value="150" style="width:100%">
+  <input type="range" id="nebulaSize" min="30" max="120" step="5" value="60" style="width:100%">
   <label>Nebula anim speed</label>
   <input type="range" id="nebulaAnim" min="0" max="0.02" step="0.001" value="0.005" style="width:100%">
 
@@ -283,7 +283,7 @@ function drawStars() {
 
 /* ---------- circular nebulae with size & anim speed ---------- */
 const nebulae=[];
-let nebulaSizeMult = 1;
+let nebulaSizeMult = 60;
 let nebulaAnimMult = 0.005;
 
 function rebuildNebulae(count){
@@ -292,7 +292,7 @@ function rebuildNebulae(count){
     nebulae.push({
       x:Math.random()*w,
       y:Math.random()*h,
-      r:100+Math.random()*200,
+      r:30+Math.random()*90,
       hue:200+Math.random()*220,
       driftX:(Math.random()-0.5)*0.3,
       driftY:(Math.random()-0.5)*0.3,
@@ -306,19 +306,18 @@ function drawNebulae(){
   nebulae.forEach(n=>{
     n.pulse += nebulaAnimMult;
     const scale = 1 + Math.sin(n.pulse)*0.1;
-    const grad=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*scale*nebulaSizeMult);
+    const grad=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*scale*(nebulaSizeMult/100));
     grad.addColorStop(0,`hsla(${n.hue},80%,50%,0.15)`);
     grad.addColorStop(0.5,`hsla(${n.hue},60%,50%,0.05)`);
     grad.addColorStop(1,'transparent');
     ctx.fillStyle=grad;
     ctx.beginPath();
-    ctx.arc(n.x,n.y,n.r*scale*nebulaSizeMult,0,Math.PI*2);
+    ctx.arc(n.x,n.y,n.r*scale*(nebulaSizeMult/100),0,Math.PI*2);
     ctx.fill();
     n.x+=n.driftX; n.y+=n.driftY;
-    if(n.x<-n.r*nebulaSizeMult)n.x=w+n.r*nebulaSizeMult;
-    if(n.x>w+n.r*nebulaSizeMult)n.x=-n.r*nebulaSizeMult;
-    if(n.y<-n.r*nebulaSizeMult)n.y=h+n.r*nebulaSizeMult;
-    if(n.y>h+n.r*nebulaSizeMult)n.y=-n.r*nebulaSizeMult;
+    const rad = n.r*(nebulaSizeMult/100);
+    if(n.x<-rad)n.x=w+rad; if(n.x>w+rad)n.x=-rad;
+    if(n.y<-rad)n.y=h+rad; if(n.y>h+rad)n.y=-rad;
   });
 }
 
