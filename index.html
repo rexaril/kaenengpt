@@ -28,11 +28,48 @@ body {
 /* ---------- canvas ---------- */
 #spaceCanvas { position: fixed; inset:0; width:100%; height:100%; z-index:0; }
 
-/* ---------- logo ---------- */
+/* ---------- top-bar ---------- */
+#topBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 10;
+}
+
+/* centered settings button (rectangle) */
+#settingsBtn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--glass-strong);
+  border-radius: 6px;
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  cursor: pointer;
+}
+
+/* background color picker (rectangle swatch) */
+#bgColorPicker {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--glass-strong);
+  border-radius: 6px;
+  padding: 0;
+  background: #000;
+  cursor: pointer;
+}
+
+/* logo under top bar */
 #logo {
   position: fixed;
-  top: 24px;
-  left: 24px;
+  top: 78px;
+  left: 50%;
+  transform: translateX(-50%);
   font-weight: bold;
   color: rgba(255,255,255,0.9);
   font-size: 20px;
@@ -40,25 +77,13 @@ body {
   z-index: 10;
 }
 
-/* ---------- settings ---------- */
-#settingsBtn {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--glass-strong);
-  border-radius: 50%;
-  background: var(--glass);
-  backdrop-filter: var(--blur);
-  cursor: pointer;
-  z-index: 10;
-}
+/* ---------- settings panel ---------- */
 #settingsPanel {
   position: fixed;
-  top: 70px;
-  right: 24px;
-  width: 220px;
+  top: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
   padding: 20px;
   background: rgba(0,0,0,.5);
   border: 1px solid var(--glass-strong);
@@ -134,19 +159,22 @@ body {
 
 <canvas id="spaceCanvas"></canvas>
 
-<!-- logo -->
+<!-- top bar -->
+<div id="topBar">
+  <input type="color" id="bgColorPicker" value="#000000">
+  <div id="settingsBtn"></div>
+</div>
+
+<!-- logo under bar -->
 <div id="logo">kaenenGPT</div>
 
-<!-- settings -->
-<div id="settingsBtn"></div>
+<!-- settings panel -->
 <div id="settingsPanel">
-  <label>Background</label>
-  <input type="color" id="bgColorPicker" value="#000000" style="width:100%">
-
   <label><input type="checkbox" id="toggleStars" checked> Stars</label>
+  <label>Star amount</label>
+  <input type="range" id="starAmount" min="20" max="400" step="10" value="200" style="width:100%">
   <label>Star speed</label>
   <input type="range" id="starSpeed" min="0.1" max="3" step="0.1" value="0.1" style="width:100%">
-
   <label>Star size</label>
   <input type="range" id="starSize" min="0.3" max="3" step="0.1" value="0.3" style="width:100%">
   <label>Sparkle speed</label>
@@ -155,6 +183,10 @@ body {
   <label><input type="checkbox" id="toggleNebulae"> Nebulae</label>
   <label>Nebulae count</label>
   <input type="range" id="nebulaeCount" min="0" max="8" step="1" value="0" style="width:100%">
+  <label>Nebula size</label>
+  <input type="range" id="nebulaSize" min="50" max="300" step="10" value="150" style="width:100%">
+  <label>Nebula anim speed</label>
+  <input type="range" id="nebulaAnim" min="0" max="0.02" step="0.001" value="0.005" style="width:100%">
 
   <label><input type="checkbox" id="toggleLogo"> Show Logo</label>
 </div>
@@ -178,33 +210,36 @@ addEventListener('resize', resize);
 resize();
 
 /* ---------- stars ---------- */
-const stars = [];
-for (let i = 0; i < 200; i++) {
-  const angle = Math.random() * Math.PI * 2;
-  const speed = 0.2 + Math.random() * 0.8;
-  stars.push({
-    x: Math.random() * w,
-    y: Math.random() * h,
-    vx: Math.cos(angle) * speed,
-    vy: Math.sin(angle) * speed,
-    size: 2 + Math.random() * 4,
-    alpha: Math.random(),
-    alphaDir: Math.random() < 0.5 ? 1 : -1,
-    sparkleBase: 0.015 + Math.random() * 0.015,
-    rot: Math.random() * Math.PI * 2
-  });
-}
-
+let stars = [];
 let starSpeedMult = 0.1;
 let starSizeMult  = 0.3;
 let sparkleMult   = 0.2;
+
+function buildStars(count){
+  stars = [];
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.2 + Math.random() * 0.8;
+    stars.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: 2 + Math.random() * 4,
+      alpha: Math.random(),
+      alphaDir: Math.random() < 0.5 ? 1 : -1,
+      sparkleBase: 0.015 + Math.random() * 0.015,
+      rot: Math.random() * Math.PI * 2
+    });
+  }
+}
+buildStars(200);
 
 /* diamond-like skinny 4-point star + glow */
 function drawStar(ctx, x, y, arm, rot = 0) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rot);
-  // tiny glow
   ctx.shadowBlur = arm * 0.8;
   ctx.shadowColor = '#ffffff';
   const thick = Math.max(0.5, arm * 0.15);
@@ -246,59 +281,44 @@ function drawStars() {
   ctx.restore();
 }
 
-/* ---------- animated cloud-like nebulae ---------- */
+/* ---------- circular nebulae with size & anim speed ---------- */
 const nebulae=[];
+let nebulaSizeMult = 1;
+let nebulaAnimMult = 0.005;
+
 function rebuildNebulae(count){
   nebulae.length=0;
   for(let i=0;i<count;i++){
-    const points = 6 + Math.floor(Math.random()*4);
-    const pts = [];
-    for(let j=0;j<points;j++){
-      const a = (j/points)*Math.PI*2;
-      pts.push({
-        x: Math.cos(a) * (50 + Math.random()*150),
-        y: Math.sin(a) * (50 + Math.random()*150)
-      });
-    }
     nebulae.push({
       x:Math.random()*w,
       y:Math.random()*h,
-      pts:pts,
+      r:100+Math.random()*200,
       hue:200+Math.random()*220,
-      driftX:(Math.random()-0.5)*0.2,
-      driftY:(Math.random()-0.5)*0.2,
-      rot:0,
-      rotSpd:(Math.random()-0.5)*0.002,
-      pulse:Math.random()*Math.PI*2,
-      pulseSpd:0.005+Math.random()*0.005
+      driftX:(Math.random()-0.5)*0.3,
+      driftY:(Math.random()-0.5)*0.3,
+      pulse:Math.random()*Math.PI*2
     });
   }
 }
 rebuildNebulae(0);
+
 function drawNebulae(){
   nebulae.forEach(n=>{
-    n.rot += n.rotSpd;
-    n.pulse += n.pulseSpd;
+    n.pulse += nebulaAnimMult;
     const scale = 1 + Math.sin(n.pulse)*0.1;
-    ctx.save();
-    ctx.translate(n.x,n.y);
-    ctx.rotate(n.rot);
-    ctx.scale(scale,scale);
-    const grad=ctx.createRadialGradient(0,0,0,0,0,200);
+    const grad=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*scale*nebulaSizeMult);
     grad.addColorStop(0,`hsla(${n.hue},80%,50%,0.15)`);
     grad.addColorStop(0.5,`hsla(${n.hue},60%,50%,0.05)`);
     grad.addColorStop(1,'transparent');
     ctx.fillStyle=grad;
     ctx.beginPath();
-    ctx.moveTo(n.pts[0].x,n.pts[0].y);
-    for(let i=1;i<n.pts.length;i++) ctx.lineTo(n.pts[i].x,n.pts[i].y);
-    ctx.closePath();
+    ctx.arc(n.x,n.y,n.r*scale*nebulaSizeMult,0,Math.PI*2);
     ctx.fill();
-    ctx.restore();
-
     n.x+=n.driftX; n.y+=n.driftY;
-    if(n.x<-300)n.x=w+300; if(n.x>w+300)n.x=-300;
-    if(n.y<-300)n.y=h+300; if(n.y>h+300)n.y=-300;
+    if(n.x<-n.r*nebulaSizeMult)n.x=w+n.r*nebulaSizeMult;
+    if(n.x>w+n.r*nebulaSizeMult)n.x=-n.r*nebulaSizeMult;
+    if(n.y<-n.r*nebulaSizeMult)n.y=h+n.r*nebulaSizeMult;
+    if(n.y>h+n.r*nebulaSizeMult)n.y=-n.r*nebulaSizeMult;
   });
 }
 
@@ -322,7 +342,10 @@ document.getElementById('bgColorPicker').oninput=e=>document.body.style.backgrou
 document.getElementById('starSpeed').oninput=e=>starSpeedMult=parseFloat(e.target.value);
 document.getElementById('starSize').oninput=e=>starSizeMult=parseFloat(e.target.value);
 document.getElementById('sparkleSpeed').oninput=e=>sparkleMult=parseFloat(e.target.value);
+document.getElementById('starAmount').oninput=e=>{buildStars(parseInt(e.target.value,10));};
 document.getElementById('nebulaeCount').oninput=e=>rebuildNebulae(parseInt(e.target.value,10));
+document.getElementById('nebulaSize').oninput=e=>nebulaSizeMult=parseFloat(e.target.value);
+document.getElementById('nebulaAnim').oninput=e=>nebulaAnimMult=parseFloat(e.target.value);
 
 const logo=document.getElementById('logo');
 document.getElementById('toggleLogo').onchange=e=>{logo.style.display=e.target.checked?'block':'none';};
@@ -346,14 +369,12 @@ async function sendMsg(){
   userInput.value='';
   addBubble(text,'user');
 
-  // thinking placeholder
   const thinkingBubble=document.createElement('div');
   thinkingBubble.className='bubble ai';
   thinkingBubble.textContent='kaenengpt is thinking...';
   chatBox.appendChild(thinkingBubble);
   chatBox.scrollTop=chatBox.scrollHeight;
 
-  // send button flash
   sendBtn.classList.add('active');
   setTimeout(()=>sendBtn.classList.remove('active'),300);
 
