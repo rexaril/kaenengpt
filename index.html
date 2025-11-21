@@ -171,31 +171,77 @@ let w,h;
 function resize() { w=canvas.width=innerWidth; h=canvas.height=innerHeight; }
 addEventListener('resize', resize);
 resize();
-
 /* ---------- stars ---------- */
 const stars = [];
-for(let i=0;i<200;i++){
-  const angle=Math.random()*Math.PI*2;
-  const speed=0.2+Math.random()*0.8;
-  stars.push({x:Math.random()*w,y:Math.random()*h,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed});
-}
-let starSpeedMult=1;
-function drawStars(){
-  ctx.save();
-  ctx.globalAlpha=0.35;
-  ctx.fillStyle='#fff';
-  stars.forEach(s=>{
-    ctx.beginPath();
-    ctx.arc(s.x,s.y,2,0,Math.PI*2);
-    ctx.fill();
-    s.x+=s.vx*starSpeedMult;
-    s.y+=s.vy*starSpeedMult;
-    if(s.x<0)s.x=w;if(s.x>w)s.x=0;
-    if(s.y<0)s.y=h;if(s.y>h)s.y=0;
+for (let i = 0; i < 200; i++) {
+  const angle = Math.random() * Math.PI * 2;
+  const speed = 0.2 + Math.random() * 0.8;
+  stars.push({
+    x: Math.random() * w,
+    y: Math.random() * h,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    size: 2 + Math.random() * 4,      // arm-length multiplier
+    alpha: Math.random(),
+    alphaDir: Math.random() < 0.5 ? 1 : -1,
+    sparkleSpeed: 0.015 + Math.random() * 0.015, // individual twinkle speed
+    rot: Math.random() * Math.PI * 2  // random rotation
   });
+}
+
+let starSpeedMult = 1;
+
+/* 4-pointed star with long arms ------------------------------------------ */
+function drawStar(ctx, x, y, arm, rot = 0) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+
+  const thick = Math.max(1, arm * 0.25); // cross thickness
+  ctx.beginPath();
+  // vertical bar
+  ctx.moveTo(-thick, -arm);
+  ctx.lineTo(thick, -arm);
+  ctx.lineTo(thick, arm);
+  ctx.lineTo(-thick, arm);
+  ctx.closePath();
+  ctx.fill();
+  // horizontal bar
+  ctx.beginPath();
+  ctx.moveTo(-arm, -thick);
+  ctx.lineTo(arm, -thick);
+  ctx.lineTo(arm, thick);
+  ctx.lineTo(-arm, thick);
+  ctx.closePath();
+  ctx.fill();
+
   ctx.restore();
 }
 
+/* render loop -------------------------------------------------------------- */
+function drawStars() {
+  ctx.save();
+  stars.forEach(s => {
+    // sparkle / fade
+    s.alpha += s.sparkleSpeed * s.alphaDir;
+    if (s.alpha >= 1) { s.alpha = 1; s.alphaDir = -1; }
+    if (s.alpha <= 0) { s.alpha = 0; s.alphaDir = 1; }
+
+    ctx.globalAlpha = s.alpha;
+    ctx.fillStyle = '#fff';
+    drawStar(ctx, s.x, s.y, s.size * 1.8, s.rot); // long arms + rotation
+
+    // movement
+    s.x += s.vx * starSpeedMult;
+    s.y += s.vy * starSpeedMult;
+    // wrap
+    if (s.x < 0) s.x = w;
+    if (s.x > w) s.x = 0;
+    if (s.y < 0) s.y = h;
+    if (s.y > h) s.y = 0;
+  });
+  ctx.restore();
+}
 /* ---------- abstract nebulae ---------- */
 const nebulae=[];
 function rebuildNebulae(count){
