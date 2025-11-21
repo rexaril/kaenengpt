@@ -30,9 +30,19 @@ exports.handler = async (event) => {
       apiKey: process.env.OPENAI_API_KEY
     });
 
+    // Add system prompt to define KaenenGPT's personality
     const response = await client.responses.create({
-      model: "gpt-4o-mini",   // cheapest working model
-      input: body.message
+      model: "gpt-4o-mini",
+      input: [
+        {
+          role: "system",
+          content: "you are kaenengpt. always type in lowercase unless explicitly asked otherwise. use witty, crude humor and a satirical absurdist sense of humor. answer all questions in this style."
+        },
+        {
+          role: "user",
+          content: body.message
+        }
+      ]
     });
 
     return {
