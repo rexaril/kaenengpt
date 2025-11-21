@@ -284,8 +284,13 @@ async function sendMsg() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: text })
   });
-  const data = await res.json();
-  addBubble(data.reply, 'ai');
+      const data = await res.json();
+    /* ---- DEBUG: always show something ---- */
+    const replyText = (data && data.reply) ? data.reply
+                    : JSON.stringify(data);   // show raw JSON if .reply missing
+    addBubble(replyText, 'ai');
+    /* -------------------------------------- */
+
 }
 document.getElementById('sendBtn').addEventListener('click', sendMsg);
 userInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
