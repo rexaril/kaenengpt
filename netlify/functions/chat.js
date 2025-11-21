@@ -1,6 +1,6 @@
-const OpenAI = require("openai");
+import OpenAI from "openai";
 
-exports.handler = async (event) => {
+export async function handler(event) {
   try {
     const body = JSON.parse(event.body);
 
@@ -8,27 +8,24 @@ exports.handler = async (event) => {
       apiKey: process.env.OPENAI_API_KEY
     });
 
-    const completion = await client.chat.completions.create({
+    const response = await client.responses.create({
       model: "gpt-5.1-mini",
-      messages: [
-        { role: "system", content: "You are KaenenGPT, a helpful AI." },
-        { role: "user", content: body.message }
-      ]
+      input: body.message
     });
 
     return {
       statusCode: 200,
       body: JSON.stringify({
-        reply: completion.choices[0].message.content
+        reply: response.output_text
       })
     };
 
   } catch (err) {
-    console.error(err);
-
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Something went wrong." })
+      body: JSON.stringify({
+        error: "Function failed internally."
+      })
     };
   }
-};
+}
