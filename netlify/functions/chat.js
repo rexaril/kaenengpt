@@ -1,6 +1,6 @@
-import OpenAI from "openai";
+const OpenAI = require("openai");
 
-export async function handler(event) {
+exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body);
 
@@ -21,11 +21,12 @@ export async function handler(event) {
     };
 
   } catch (err) {
+    console.error("FUNCTION ERROR:", err);
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "Function failed internally."
+        error: "Function failed internally (CommonJS)."
       })
     };
   }
-}
+};
