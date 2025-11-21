@@ -9,7 +9,7 @@ exports.handler = async (event) => {
     });
 
     const response = await client.responses.create({
-      model: "gpt-5.1-mini",
+      model: "gpt-4o-mini",
       input: body.message
     });
 
