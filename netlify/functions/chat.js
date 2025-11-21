@@ -1,6 +1,6 @@
-import OpenAI from "openai";
+const OpenAI = require("openai");
 
-export async function handler(event) {
+exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body);
 
@@ -31,4 +31,4 @@ export async function handler(event) {
       body: JSON.stringify({ error: "Something went wrong." })
     };
   }
-}
+};
