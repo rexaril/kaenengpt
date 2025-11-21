@@ -1,6 +1,6 @@
-const OpenAI = require("openai");
+import OpenAI from "openai";
 
-exports.handler = async (event) => {
+export async function handler(event) {
   try {
     const body = JSON.parse(event.body);
 
@@ -21,14 +21,13 @@ exports.handler = async (event) => {
     };
 
   } catch (err) {
-    console.error("FUNCTION ERROR:", err);
+    console.error(err);
 
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: err.message || String(err),
-        stack: err.stack || "no stack"
+      body: JSON.stringify({ 
+        error: "Something went wrong on the server." 
       })
     };
   }
-};
+}
