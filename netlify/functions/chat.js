@@ -22,10 +22,12 @@ exports.handler = async (event) => {
 
   } catch (err) {
     console.error("FUNCTION ERROR:", err);
+
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "Function failed internally (CommonJS)."
+        error: err.message || String(err),
+        stack: err.stack || "no stack"
       })
     };
   }
