@@ -1,15 +1,37 @@
-import OpenAI from "openai";
+const OpenAI = require("openai");
 
-export async function handler(event) {
+exports.handler = async (event) => {
   try {
-    const body = JSON.parse(event.body);
+    if (!event.body) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "No request body received." })
+      };
+    }
+
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch (e) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Invalid JSON body." })
+      };
+    }
+
+    if (!body.message) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Missing 'message' field." })
+      };
+    }
 
     const client = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
 
     const response = await client.responses.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o-mini",   // cheapest working model
       input: body.message
     });
 
@@ -21,13 +43,14 @@ export async function handler(event) {
     };
 
   } catch (err) {
-    console.error(err);
+    console.error("SERVER ERROR:", err);
 
     return {
       statusCode: 500,
-      body: JSON.stringify({ 
-        error: "Something went wrong on the server." 
+      body: JSON.stringify({
+        error: "Something went wrong on the server.",
+        details: err.message
       })
     };
   }
-}
+};
