@@ -260,26 +260,27 @@ function drawStar(ctx, x, y, arm, rot = 0) {
 }
 
 function drawStars() {
-  ctx.save();
   stars.forEach(s => {
-    const speed = s.sparkleBase * sparkleMult;
+    /* ---- faster / visible twinkle ---- */
+    const speed = s.sparkleBase * sparkleMult * 6;   // 6× = obvious
     s.alpha += speed * s.alphaDir;
     if (s.alpha > 1) { s.alpha = 1; s.alphaDir = -1; }
-    if (s.alpha < 0) { s.alpha = 0; s.alphaDir = 1; }
+    if (s.alpha < 0.1) { s.alpha = 0.1; s.alphaDir = 1; }
 
-    ctx.globalAlpha = s.alpha;
+    ctx.save();
+    ctx.globalAlpha = s.alpha;          // actually use the alpha
     ctx.fillStyle = '#fff';
     drawStar(ctx, s.x, s.y, s.size * 1.8 * starSizeMult, s.rot);
+    ctx.restore();
 
+    /* movement */
     s.x += s.vx * starSpeedMult;
     s.y += s.vy * starSpeedMult;
-    if (s.x < 0) s.x = w;
-    if (s.x > w) s.x = 0;
-    if (s.y < 0) s.y = h;
-    if (s.y > h) s.y = 0;
+    if (s.x < 0) s.x = w; if (s.x > w) s.x = 0;
+    if (s.y < 0) s.y = h; if (s.y > h) s.y = 0;
   });
-  ctx.restore();
 }
+
 
 /* ---------- circular nebulae with size & anim speed ---------- */
 const nebulae=[];
