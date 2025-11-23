@@ -215,6 +215,10 @@ let starSpeedMult = 0.1;
 let starSizeMult  = 0.3;
 let sparkleMult   = 0.2;
 
+/* MOBILE SAFARI THROTTLES RAF → boost sparkle speed */
+const isLowFPS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+if (isLowFPS) sparkleMult *= 4;   // 4× extra on iOS
+
 function buildStars(count){
   stars = [];
   for (let i = 0; i < count; i++) {
@@ -341,7 +345,7 @@ document.getElementById('toggleNebulae').onchange=e=>nebulaeEnabled=e.target.che
 document.getElementById('bgColorPicker').oninput=e=>document.body.style.background=e.target.value;
 document.getElementById('starSpeed').oninput=e=>starSpeedMult=parseFloat(e.target.value);
 document.getElementById('starSize').oninput=e=>starSizeMult=parseFloat(e.target.value);
-document.getElementById('sparkleSpeed').oninput=e=>sparkleMult=parseFloat(e.target.value);
+document.getElementById('sparkleSpeed').oninput=e=>sparkleMult=parseFloat(e.target.value) * (isLowFPS?4:1);
 document.getElementById('starAmount').oninput=e=>{buildStars(parseInt(e.target.value,10));};
 document.getElementById('nebulaeCount').oninput=e=>rebuildNebulae(parseInt(e.target.value,10));
 document.getElementById('nebulaSize').oninput=e=>nebulaSizeMult=parseFloat(e.target.value);
