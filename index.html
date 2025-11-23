@@ -37,12 +37,13 @@ body {
   height: 70px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end; /* moved to far right */
   gap: 12px;
+  padding-right: 20px; /* ensure spacing from edge */
   z-index: 10;
 }
 
-/* centered settings button (rectangle) */
+/* settings button */
 #settingsBtn {
   width: 40px;
   height: 40px;
@@ -50,17 +51,6 @@ body {
   border-radius: 6px;
   background: var(--glass);
   backdrop-filter: var(--blur);
-  cursor: pointer;
-}
-
-/* background color picker (rectangle swatch) */
-#bgColorPicker {
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--glass-strong);
-  border-radius: 6px;
-  padding: 0;
-  background: #000;
   cursor: pointer;
 }
 
@@ -96,6 +86,17 @@ body {
 }
 #settingsPanel label { display:flex; align-items:center; margin:10px 0; }
 #settingsPanel input[type="checkbox"] { margin-right:8px; }
+
+/* background color picker moved into settings */
+#bgColorPicker {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--glass-strong);
+  border-radius: 6px;
+  padding: 0;
+  cursor: pointer;
+  background: #000;
+}
 
 /* ---------- chat ---------- */
 #chatBox {
@@ -151,8 +152,6 @@ body {
   z-index:5;
 }
 #sendBtn.active { background: rgba(0,255,0,0.2); }
-
-/* ---------- canvas improvements ---------- */
 </style>
 </head>
 <body>
@@ -161,15 +160,17 @@ body {
 
 <!-- top bar -->
 <div id="topBar">
-  <input type="color" id="bgColorPicker" value="#000000">
   <div id="settingsBtn"></div>
 </div>
 
-<!-- logo under bar -->
+<!-- logo -->
 <div id="logo">kaenenGPT</div>
 
-<!-- settings panel -->
+<!-- settings panel (bg color integrated here) -->
 <div id="settingsPanel">
+  <label>Background color</label>
+  <input type="color" id="bgColorPicker" value="#000000">
+
   <label><input type="checkbox" id="toggleStars" checked> Stars</label>
   <label>Star amount</label>
   <input type="range" id="starAmount" min="20" max="400" step="10" value="200" style="width:100%">
@@ -178,7 +179,7 @@ body {
   <label>Star size</label>
   <input type="range" id="starSize" min="0.3" max="3" step="0.1" value="0.3" style="width:100%">
   <label>Sparkle speed</label>
-  <input type="range" id="sparkleSpeed" min="0.2" max="4" step="0.1" value="0.2" style="width:100%">
+  <input type="range" id="sparkleSpeed" min="0.01" max="1" step="0.01" value="0.03" style="width:100%">
 
   <label><input type="checkbox" id="toggleNebulae"> Nebulae</label>
   <label>Nebulae count</label>
@@ -213,7 +214,9 @@ resize();
 let stars = [];
 let starSpeedMult = 0.1;
 let starSizeMult  = 0.3;
-let sparkleMult   = 0.2;
+
+/* MUCH SLOWER sparkle */
+let sparkleMult   = 0.03;  // lowered heavily from 0.2
 
 function buildStars(count){
   stars = [];
@@ -228,14 +231,13 @@ function buildStars(count){
       size: 2 + Math.random() * 4,
       alpha: Math.random(),
       alphaDir: Math.random() < 0.5 ? 1 : -1,
-      sparkleBase: 0.015 + Math.random() * 0.015,
+      sparkleBase: 0.005 + Math.random() * 0.005, /* slower base */
       rot: Math.random() * Math.PI * 2
     });
   }
 }
 buildStars(200);
 
-/* diamond-like skinny 4-point star + glow */
 function drawStar(ctx, x, y, arm, rot = 0) {
   ctx.save();
   ctx.translate(x, y);
@@ -261,19 +263,17 @@ function drawStar(ctx, x, y, arm, rot = 0) {
 
 function drawStars() {
   stars.forEach(s => {
-    /* ---- faster / visible twinkle ---- */
-    const speed = s.sparkleBase * sparkleMult * 6;   // 6× = obvious
+    const speed = s.sparkleBase * sparkleMult; /* MUCH slower */
     s.alpha += speed * s.alphaDir;
     if (s.alpha > 1) { s.alpha = 1; s.alphaDir = -1; }
     if (s.alpha < 0.1) { s.alpha = 0.1; s.alphaDir = 1; }
 
     ctx.save();
-    ctx.globalAlpha = s.alpha;          // actually use the alpha
+    ctx.globalAlpha = s.alpha;
     ctx.fillStyle = '#fff';
     drawStar(ctx, s.x, s.y, s.size * 1.8 * starSizeMult, s.rot);
     ctx.restore();
 
-    /* movement */
     s.x += s.vx * starSpeedMult;
     s.y += s.vy * starSpeedMult;
     if (s.x < 0) s.x = w; if (s.x > w) s.x = 0;
@@ -281,8 +281,7 @@ function drawStars() {
   });
 }
 
-
-/* ---------- circular nebulae with size & anim speed ---------- */
+/* ---------- nebulae ---------- */
 const nebulae=[];
 let nebulaSizeMult = 60;
 let nebulaAnimMult = 0.005;
