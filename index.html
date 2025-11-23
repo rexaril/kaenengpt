@@ -206,7 +206,7 @@ const canvas = document.getElementById('spaceCanvas');
 const ctx = canvas.getContext('2d');
 let w,h;
 function resize() { w=canvas.width=innerWidth; h=canvas.height=innerHeight; }
-addEventListener('resize', ()=>{resize(); drawOnce();});
+addEventListener('resize', resize);
 resize();
 
 /* ---------- stars ---------- */
@@ -214,11 +214,6 @@ let stars = [];
 let starSpeedMult = 0.1;
 let starSizeMult  = 0.3;
 let sparkleMult   = 0.2;
-
-/* mobile throttle helper */
-const isLowFPS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-const FRAME_MS = isLowFPS ? 50 : 0;          // 20 fps cap on iOS
-let lastDraw = 0;
 
 function buildStars(count){
   stars = [];
@@ -237,7 +232,6 @@ function buildStars(count){
       rot: Math.random() * Math.PI * 2
     });
   }
-  drawOnce();
 }
 buildStars(200);
 
@@ -246,11 +240,8 @@ function drawStar(ctx, x, y, arm, rot = 0) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rot);
-  /* skip shadow on mobile – biggest GPU saver */
-  if (!isLowFPS) {
-    ctx.shadowBlur = arm * 0.8;
-    ctx.shadowColor = '#ffffff';
-  }
+  ctx.shadowBlur = arm * 0.8;
+  ctx.shadowColor = '#ffffff';
   const thick = Math.max(0.5, arm * 0.15);
   ctx.beginPath();
   ctx.moveTo(-thick, -arm);
@@ -264,20 +255,20 @@ function drawStar(ctx, x, y, arm, rot = 0) {
   ctx.lineTo( arm,  thick);
   ctx.lineTo(-arm,  thick);
   ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0;
   ctx.restore();
 }
 
 function drawStars() {
-  let needNext = false;
   stars.forEach(s => {
-    /* ---- twinkle ---- */
-    const speed = s.sparkleBase * sparkleMult * 6;
+    /* ---- faster / visible twinkle ---- */
+    const speed = s.sparkleBase * sparkleMult * 6;   // 6× = obvious
     s.alpha += speed * s.alphaDir;
     if (s.alpha > 1) { s.alpha = 1; s.alphaDir = -1; }
     if (s.alpha < 0.1) { s.alpha = 0.1; s.alphaDir = 1; }
 
     ctx.save();
-    ctx.globalAlpha = s.alpha;
+    ctx.globalAlpha = s.alpha;          // actually use the alpha
     ctx.fillStyle = '#fff';
     drawStar(ctx, s.x, s.y, s.size * 1.8 * starSizeMult, s.rot);
     ctx.restore();
@@ -285,17 +276,13 @@ function drawStars() {
     /* movement */
     s.x += s.vx * starSpeedMult;
     s.y += s.vy * starSpeedMult;
-    let wrap = false;
-    if (s.x < 0) { s.x = w; wrap = true; }
-    if (s.x > w) { s.x = 0; wrap = true; }
-    if (s.y < 0) { s.y = h; wrap = true; }
-    if (s.y > h) { s.y = 0; wrap = true; }
-    if (wrap) needNext = true;
+    if (s.x < 0) s.x = w; if (s.x > w) s.x = 0;
+    if (s.y < 0) s.y = h; if (s.y > h) s.y = 0;
   });
-  return needNext;
 }
 
-/* ---------- circular nebulae ---------- */
+
+/* ---------- circular nebulae with size & anim speed ---------- */
 const nebulae=[];
 let nebulaSizeMult = 60;
 let nebulaAnimMult = 0.005;
@@ -313,12 +300,10 @@ function rebuildNebulae(count){
       pulse:Math.random()*Math.PI*2
     });
   }
-  drawOnce();
 }
 rebuildNebulae(0);
 
 function drawNebulae(){
-  let needNext = false;
   nebulae.forEach(n=>{
     n.pulse += nebulaAnimMult;
     const scale = 1 + Math.sin(n.pulse)*0.1;
@@ -332,79 +317,38 @@ function drawNebulae(){
     ctx.fill();
     n.x+=n.driftX; n.y+=n.driftY;
     const rad = n.r*(nebulaSizeMult/100);
-    if(n.x<-rad){n.x=w+rad; needNext=true;}
-    if(n.x>w+rad){n.x=-rad; needNext=true;}
-    if(n.y<-rad){n.y=h+rad; needNext=true;}
-    if(n.y>h+rad){n.y=-rad; needNext=true;}
+    if(n.x<-rad)n.x=w+rad; if(n.x>w+rad)n.x=-rad;
+    if(n.y<-rad)n.y=h+rad; if(n.y>h+rad)n.y=-rad;
   });
-  return needNext;
 }
 
-/* ---------- draw-once driver ---------- */
+/* ---------- animation ---------- */
 let starsEnabled=true;
 let nebulaeEnabled=false;
-let needsFrame = true;          // force first draw
-
-function drawOnce(){
-  if (!needsFrame) return;
+function animate(){
   ctx.clearRect(0,0,w,h);
-  let n = false;
-  if(nebulaeEnabled) n = drawNebulae() || n;
-  if(starsEnabled)   n = drawStars()   || n;
-  needsFrame = n;                 // schedule another only if something wrapped
-}
-
-/* ---------- mobile-friendly tick ---------- */
-function animate(ts){
-  if (FRAME_MS ? ts - lastDraw >= FRAME_MS : true){
-    lastDraw = ts;
-    drawOnce();
-  }
+  if(nebulaeEnabled) drawNebulae();
+  if(starsEnabled) drawStars();
   requestAnimationFrame(animate);
 }
-requestAnimationFrame(animate);
+animate();
 
 /* ---------- settings ---------- */
 const panel=document.getElementById('settingsPanel');
 document.getElementById('settingsBtn').onclick=()=>{panel.style.display=panel.style.display==='block'?'none':'block';};
-
-document.getElementById('toggleStars').onchange=e=>{
-  starsEnabled=e.target.checked; needsFrame=true;
-};
-document.getElementById('toggleNebulae').onchange=e=>{
-  nebulaeEnabled=e.target.checked; needsFrame=true;
-};
-document.getElementById('bgColorPicker').oninput=e=>{
-  document.body.style.background=e.target.value;
-};
-document.getElementById('starSpeed').oninput=e=>{
-  starSpeedMult=parseFloat(e.target.value);
-};
-document.getElementById('starSize').oninput=e=>{
-  starSizeMult=parseFloat(e.target.value);
-  needsFrame=true;
-};
-document.getElementById('sparkleSpeed').oninput=e=>{
-  sparkleMult=parseFloat(e.target.value) * (isLowFPS?4:1);
-};
-document.getElementById('starAmount').oninput=e=>{
-  buildStars(parseInt(e.target.value,10));
-};
-document.getElementById('nebulaeCount').oninput=e=>{
-  rebuildNebulae(parseInt(e.target.value,10));
-};
-document.getElementById('nebulaSize').oninput=e=>{
-  nebulaSizeMult=parseFloat(e.target.value);
-  needsFrame=true;
-};
-document.getElementById('nebulaAnim').oninput=e=>{
-  nebulaAnimMult=parseFloat(e.target.value);
-};
+document.getElementById('toggleStars').onchange=e=>starsEnabled=e.target.checked;
+document.getElementById('toggleNebulae').onchange=e=>nebulaeEnabled=e.target.checked;
+document.getElementById('bgColorPicker').oninput=e=>document.body.style.background=e.target.value;
+document.getElementById('starSpeed').oninput=e=>starSpeedMult=parseFloat(e.target.value);
+document.getElementById('starSize').oninput=e=>starSizeMult=parseFloat(e.target.value);
+document.getElementById('sparkleSpeed').oninput=e=>sparkleMult=parseFloat(e.target.value);
+document.getElementById('starAmount').oninput=e=>{buildStars(parseInt(e.target.value,10));};
+document.getElementById('nebulaeCount').oninput=e=>rebuildNebulae(parseInt(e.target.value,10));
+document.getElementById('nebulaSize').oninput=e=>nebulaSizeMult=parseFloat(e.target.value);
+document.getElementById('nebulaAnim').oninput=e=>nebulaAnimMult=parseFloat(e.target.value);
 
 const logo=document.getElementById('logo');
-document.getElementById('toggleLogo').onchange=e=>{
-  logo.style.display=e.target.checked?'block':'none';
-};
+document.getElementById('toggleLogo').onchange=e=>{logo.style.display=e.target.checked?'block':'none';};
 
 /* ---------- chat ---------- */
 const chatBox=document.getElementById('chatBox');
